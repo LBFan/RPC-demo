@@ -31,5 +31,41 @@ public class Call {
      * 响应信息
      */
     private Object reply;
+
+    public String getServiceMethod() {
+        return serviceMethod;
+    }
+
+    public void setServiceMethod(String serviceMethod) {
+        this.serviceMethod = serviceMethod;
+    }
+
+    public int getSeq() {
+        return seq;
+    }
+
+    public void setSeq(int seq) {
+        this.seq = seq;
+    }
+
+    public List<Object> getArgs() {
+        return args;
+    }
+
+    public void setArgs(List<Object> args) {
+        this.args = args;
+    }
+
+    public Object getReply() {
+        return reply;
+    }
+
+    public void setReply(Object reply) {
+        this.reply = reply;
+    }
+
+    public void close() {
+
+    }
 }
 

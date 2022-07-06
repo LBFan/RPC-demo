@@ -35,4 +35,6 @@ public interface ReadWriteHandle {
      */
     Boolean writeObject(Header header, Body body) throws Exception;
 
+    void close();
+
 }

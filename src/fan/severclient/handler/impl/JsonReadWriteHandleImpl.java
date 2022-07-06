@@ -64,5 +64,10 @@ public class JsonReadWriteHandleImpl implements ReadWriteHandle {
 
         return true;
     }
+
+    @Override
+    public void close() {
+
+    }
 }
 
