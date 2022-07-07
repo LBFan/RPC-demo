@@ -1,5 +1,6 @@
 package fan.day2;
 
+import fan.severclient.Body;
 import fan.severclient.Header;
 import fan.severclient.Option;
 import fan.severclient.handler.ReadWriteHandle;
@@ -40,7 +41,7 @@ public class Client {
      */
     int seq;
     /**
-     * 发送的消息体map
+     * 待发送的消息体map
      */
     Map<Integer, Call> pending;
     /**
@@ -88,7 +89,7 @@ public class Client {
     }
 
 
-    public Call removeCll(int seq) {
+    public Call removeCall(int seq) {
         synchronized (MU) {
             Call call = this.pending.get(seq);
             delete(this.pending, seq);
@@ -117,5 +118,62 @@ public class Client {
         }
     }
 
+    public void send(Call call) {
+        synchronized (MU) {
+            try {
+                int seq = this.registerCall(call);
+            } catch (Exception e) {
+                System.out.println(e.getLocalizedMessage());
+                return;
+            }
+            this.header.setServiceMethod(call.getServiceMethod());
+            this.header.setSeq(seq);
+            try {
+                Boolean writeSuccess = this.codec.writeObject(this.header, call.getArgs());
+            } catch (Exception e) {
+                Call call1 = this.removeCall(seq);
+                System.out.println(e.getLocalizedMessage());
+                if (call1 != null) {
+                    call1.done();
+                }
+                return;
+            }
+        }
+    }
+
+    public void receive() {
+        for (; ; ) {
+            try {
+                Header header = this.codec.readHeader();
+                Call call = this.removeCall(header.getSeq());
+                if (call != null) {
+                    Body body = this.codec.readBody();
+                }
+
+                //
+                call.done();
+            } catch (Exception e) {
+                System.out.println(e.getLocalizedMessage());
+                break;
+            }
+        }
+
+        // 发生异常，所以终止后续未发送的请求
+        try {
+            this.terminateCalls();
+        } catch (Exception e) {
+            System.out.println(e.getLocalizedMessage());
+        }
+    }
+
+    public Call goCall(String serviceMethod, Body args) {
+        Call call = new Call();
+        call.setSeq(seq);
+        call.setServiceMethod(serviceMethod);
+        call.setArgs(args);
+
+        this.send(call);
+        return call;
+    }
 }
 

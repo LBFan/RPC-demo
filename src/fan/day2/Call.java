@@ -1,5 +1,9 @@
 package fan.day2;
 
+import fan.severclient.Body;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.util.List;
 
 /**
@@ -26,11 +30,13 @@ public class Call {
     /**
      * 请求参数
      */
-    private List<Object> args;
+    private Body args;
     /**
      * 响应信息
      */
     private Object reply;
+
+    private DataInputStream dis;
 
     public String getServiceMethod() {
         return serviceMethod;
@@ -48,11 +54,11 @@ public class Call {
         this.seq = seq;
     }
 
-    public List<Object> getArgs() {
+    public Body getArgs() {
         return args;
     }
 
-    public void setArgs(List<Object> args) {
+    public void setArgs(Body args) {
         this.args = args;
     }
 
@@ -64,7 +70,19 @@ public class Call {
         this.reply = reply;
     }
 
+    public DataInputStream getDis() {
+        return dis;
+    }
+
+    public void setDis(DataInputStream dis) {
+        this.dis = dis;
+    }
+
     public void close() {
+
+    }
+
+    public void done() {
 
     }
 }
