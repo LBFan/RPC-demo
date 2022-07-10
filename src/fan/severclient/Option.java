@@ -31,5 +31,13 @@ public class Option {
     public void setCodeType(String codeType) {
         this.codeType = codeType;
     }
+
+    @Override
+    public String toString() {
+        return "Option{" +
+                "magicNumber=" + magicNumber +
+                ", codeType='" + codeType + '\'' +
+                '}';
+    }
 }
 

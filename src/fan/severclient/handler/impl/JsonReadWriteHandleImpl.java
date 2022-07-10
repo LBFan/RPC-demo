@@ -67,7 +67,20 @@ public class JsonReadWriteHandleImpl implements ReadWriteHandle {
 
     @Override
     public void close() {
+        if (dis != null) {
+            try {
+                dis.close();
+            } catch(Exception e) {
 
+            }
+        }
+        if (dos != null) {
+            try {
+                dos.close();
+            } catch(Exception e) {
+
+            }
+        }
     }
 }
 

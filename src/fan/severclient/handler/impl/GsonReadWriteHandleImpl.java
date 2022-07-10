@@ -67,5 +67,10 @@ public class GsonReadWriteHandleImpl implements ReadWriteHandle {
 
         return true;
     }
+
+    @Override
+    public void close() {
+
+    }
 }
 

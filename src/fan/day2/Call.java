@@ -4,6 +4,7 @@ import fan.severclient.Body;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -79,7 +80,7 @@ public class Call {
     }
 
     public void close() {
-
+        System.out.println("receive occcured error!!!");
     }
 
     public void done() {

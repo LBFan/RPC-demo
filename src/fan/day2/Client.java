@@ -1,11 +1,20 @@
 package fan.day2;
 
+import com.alibaba.fastjson.JSONObject;
 import fan.severclient.Body;
 import fan.severclient.Header;
 import fan.severclient.Option;
 import fan.severclient.handler.ReadWriteHandle;
+import fan.severclient.register.RegisterUtil;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 
 /**
  * @author : PF_23
@@ -14,6 +23,8 @@ import java.util.Map;
  */
 
 public class Client {
+
+    public CountDownLatch count;
 
     /**
      * 互斥锁
@@ -47,12 +58,56 @@ public class Client {
     /**
      * user has called close
      */
-    Boolean shutdown;
+    boolean shutdown;
     /**
      * server has told up to stop
      */
-    Boolean closing;
+    boolean closing;
 
+
+    //ExecutorService service = new ThreadPoolExecutor(10, 50, 10, TimeUnit.SECONDS, new LinkedBlockingDeque<>(1000));
+
+    /**
+     * 构造方法： 主要是构造请求协议和通道（输入输出流）
+     *
+     * @param option
+     * @param dis
+     * @param dos
+     */
+    public Client(Option option, DataInputStream dis, DataOutputStream dos, int n) {
+        // 获取处理器
+        this.codec = RegisterUtil.getFactory(option.getCodeType()).getInstance(dos, dis);
+        this.seq = 1;
+        this.opt = option;
+        this.pending = new HashMap<>();
+        this.header = new Header();
+        count = new CountDownLatch(n);
+        // 发送请求协议
+        try {
+            dos.writeUTF(JSONObject.toJSONString(this.opt));
+            System.out.println("client sent option:" + this.opt);
+        } catch (IOException e) {
+            System.out.println("请求协议发送失败");
+            if (dis != null) {
+                try {
+                    dis.close();
+                } catch (IOException ioException) {
+
+                }
+            }
+            try {
+                dos.close();
+            } catch (IOException ioException) {
+
+            }
+        }
+
+        try {
+            PoolUtil.getInstance().submit(this::receive);
+        } catch (Exception e) {
+            System.out.println("接收中断，线程结束");
+        }
+    }
 
     public void close() throws Exception {
         synchronized (MU) {
@@ -107,7 +162,7 @@ public class Client {
         pending.remove(seq);
     }
 
-    public void terminateCalls() throws Exception {
+    public void terminateCalls() {
         synchronized (SENDING) {
             synchronized (MU) {
                 this.shutdown = true;
@@ -119,17 +174,19 @@ public class Client {
     }
 
     public void send(Call call) {
-        synchronized (MU) {
+        synchronized (SENDING) {
+            int seqNow;
             try {
-                int seq = this.registerCall(call);
+                seqNow = this.registerCall(call);
             } catch (Exception e) {
                 System.out.println(e.getLocalizedMessage());
                 return;
             }
             this.header.setServiceMethod(call.getServiceMethod());
-            this.header.setSeq(seq);
+            this.header.setSeq(seqNow);
             try {
                 Boolean writeSuccess = this.codec.writeObject(this.header, call.getArgs());
+                //System.out.println("client send header:" + this.header + "; body:" + call.getArgs() + "success");
             } catch (Exception e) {
                 Call call1 = this.removeCall(seq);
                 System.out.println(e.getLocalizedMessage());
@@ -143,26 +200,28 @@ public class Client {
 
     public void receive() {
         for (; ; ) {
+            if (count.getCount() == 0) {
+                return;
+            }
             try {
                 Header header = this.codec.readHeader();
+                //System.out.println("client receive header:" + header);
                 Call call = this.removeCall(header.getSeq());
                 if (call != null) {
                     Body body = this.codec.readBody();
+                    //System.out.println("client receive body:" + body);
                 }
-
-                //
-                call.done();
             } catch (Exception e) {
-                System.out.println(e.getLocalizedMessage());
-                break;
+                System.out.println(e);
+                // 发生异常，所以终止后续未发送的请求
+                try {
+                    this.terminateCalls();
+                } catch (Exception e1) {
+                    System.out.println(e1.getLocalizedMessage());
+                }
+            } finally {
+                count.countDown();
             }
-        }
-
-        // 发生异常，所以终止后续未发送的请求
-        try {
-            this.terminateCalls();
-        } catch (Exception e) {
-            System.out.println(e.getLocalizedMessage());
         }
     }
 
@@ -174,6 +233,17 @@ public class Client {
 
         this.send(call);
         return call;
+    }
+
+    /**
+     * waits for it to complete,or returns its error exception.
+     *
+     * @param serviceMethod
+     * @param args
+     * @throws Exception
+     */
+    public void call(String serviceMethod, Body args) throws Exception {
+        this.goCall(serviceMethod, args);
     }
 }
 

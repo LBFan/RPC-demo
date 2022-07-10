@@ -234,7 +234,7 @@ public class Server implements Runnable {
                     break;
                 }
                 try {
-                    header.setSeq(header.getSeq() + 101);
+                    header.setSeq(header.getSeq());
                     body.setPayload("resp " + body.getPayload());
                     readWriteHandle.writeObject(header, body);
                 } catch (Exception e) {
